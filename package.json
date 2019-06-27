@@ -1,0 +1,38 @@
+{
+  "name": "bunni",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Evan Sherwood <evan@sherwood.io>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neezer/bunni.git"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.5.12",
+    "@types/bluebird": "^3.5.27",
+    "@types/debug": "^4.1.4",
+    "@types/jest": "^24.0.15",
+    "@types/node": "^12.0.8",
+    "jest": "^24.8.0",
+    "prettier": "^1.18.2",
+    "ts-jest": "^24.0.2",
+    "tslint": "^5.17.0",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.5.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ]
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "amqplib": "^0.5.3",
+    "debug": "^4.1.1"
+  }
+}
