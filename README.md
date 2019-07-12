@@ -1,4 +1,6 @@
-![bunni logo](https://)
+<p align="center">
+  <img src="https://www.gitcdn.xyz/cdn/neezer/bunni/47023eaf0854a83fae2cc14de7308d50444d2d7f/docs/bunni.svg" title="bunni logo" width=200 />
+</p>
 
 # bunni
 
