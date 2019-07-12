@@ -1,4 +1,9 @@
-import { Channel, connect, Connection as RawConnection } from "amqplib";
+import {
+  Channel,
+  connect,
+  Connection as RawConnection,
+  Options
+} from "amqplib";
 import makeDebug from "debug";
 import { EventEmitter } from "events";
 import { seq, unwrap } from "./utils";
@@ -17,26 +22,25 @@ export enum State {
   Failed = "failed"
 }
 
-interface ExchangeConfig {
+interface ExchangeConfig extends Options.AssertExchange {
   name: string;
-  type: "direct" | "topic" | "fanout" | "headers";
-  durable?: boolean;
-  internal?: boolean;
-  autoDelete?: boolean;
-  alternateExchange?: string;
+  type: "topic" | "fanout";
 }
 
-interface QueueConfig {
+interface QueueConfig extends Options.AssertQueue {
   name: string;
-  exclusive?: boolean;
-  durable?: boolean;
-  autoDelete?: boolean;
 }
 
 interface BindConfig {
   queue: string;
   exchange: string;
   pattern: string;
+}
+
+interface Message {
+  content: any;
+  key: string;
+  options?: Options.Publish;
 }
 
 export interface TopographyConfig {
@@ -53,6 +57,7 @@ export class Connection extends EventEmitter {
   // tslint:disable variable-name
   private _connection: RawConnection | null = null;
   private _channel: Channel | null = null;
+  private _messageBuffer: Array<[Message, string]> = [];
   // tslint:enable variable-name
 
   public constructor() {
@@ -70,6 +75,18 @@ export class Connection extends EventEmitter {
       this.error = null;
 
       debug("connected");
+
+      if (this._messageBuffer.length > 0) {
+        debug("flushing messages");
+
+        while (this._messageBuffer.length > 0) {
+          const result = this._messageBuffer.shift();
+
+          if (result !== undefined) {
+            this.rawSend(...result);
+          }
+        }
+      }
     });
 
     this.on(State.Failed, error => {
@@ -163,6 +180,30 @@ export class Connection extends EventEmitter {
       debug("nothing to close");
       this.emit(State.Closed);
     }
+  }
+
+  public send(message: Message, exchange: string) {
+    const content = Buffer.from(JSON.stringify(message.content));
+
+    this.rawSend({ ...message, content }, exchange);
+  }
+
+  private rawSend(message: Message, exchange: string) {
+    const channel = this._channel;
+
+    if (channel === null) {
+      this._messageBuffer.push([message, exchange]);
+      return;
+    }
+
+    channel.publish(
+      exchange,
+      message.key,
+      message.content,
+      message.options || {}
+    );
+
+    debug("message sent");
   }
 
   private assertTopography() {

@@ -7,9 +7,9 @@ let testConnection: amqp.Connection;
 let testChannel: amqp.Channel;
 
 const topography: TopographyConfig = {
-  bindings: [],
-  exchanges: [{ name: "default", type: "direct" }],
-  queues: []
+  bindings: [{ queue: "testing", exchange: "default", pattern: "#" }],
+  exchanges: [{ name: "default", type: "topic" }],
+  queues: [{ name: "testing" }]
 };
 
 beforeAll(async () => {
@@ -96,4 +96,55 @@ describe("topography", () => {
         .finally(done);
     });
   });
+});
+
+test("sending a message", done => {
+  const exchangeName = topography.exchanges[0].name;
+  const message = { key: "test", content: { hello: "world" } };
+
+  testChannel.consume("testing", (msg: amqp.ConsumeMessage | null) => {
+    if (msg !== null) {
+      const content = JSON.parse(msg.content.toString());
+
+      expect(content).toEqual({ hello: "world" });
+    } else {
+      expect("message").toBe("present");
+    }
+
+    done();
+  });
+
+  connection = new Connection();
+
+  connection.connect(new URL("amqp://localhost:5672"));
+  connection.setup(topography);
+  connection.send(message, exchangeName);
+});
+
+test("consumes messages from a queue", done => {
+  const exchangeName = topography.exchanges[0].name;
+  const content = Buffer.from(JSON.stringify({ hello: "world" }));
+
+  connection = new Connection();
+
+  // testChannel.consume("testing", (msg: amqp.ConsumeMessage | null) => {
+  //   if (msg !== null) {
+  //     const content = JSON.parse(msg.content.toString());
+
+  //     expect(content).toEqual({ hello: "world" });
+  //   } else {
+  //     expect("message").toBe("present");
+  //   }
+
+  //   done();
+  // });
+
+  connection.consume(, (msg: amqp.ConsumeMessage | null) => {
+    console.log(msg);
+    done();
+  })
+
+  connection.connect(new URL("amqp://localhost:5672"));
+  connection.setup(topography);
+  testChannel.publish(exchangeName, "test", content);
 });

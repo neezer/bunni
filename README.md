@@ -45,7 +45,7 @@ Topography should be in the shape of
   exchanges: [
     {
       name: 'name of exchange',
-      type: "topic", // must be one of "direct" | "topic" | "fanout" | "headers"
+      type: "topic", // must be one of "topic" | "fanout"
       durable: false, // optional, no default
       internal: false, // optional, no default
       autoDelete: false, // optional, no default
@@ -83,6 +83,36 @@ This method returns nothing.
 
 ### `bunni.send(message: Message).to(exchange: Exchange)`
 
+Sends a message to an exchange.
+
+Message must have the following shape:
+
+```ts
+{
+  content: {}, // content to send; will be passed through JSON.parse to Buffer.from
+  key: "the routing key", // determines how the message is routed
+  options: {}, // optional, see http://www.squaremobius.net/amqp.node/channel_api.html#channel_publish
+}
+```
+
+`bunni.send()` returns an object with the property `to`, which is a function
+that accepts an exchange to send your message to. The argument to `to` must
+equal the `name` of an exchange as defined in your topography.
+
+Example:
+
+```ts
+const content = { hello: "world!" };
+const message = { key: "intro.messages", content };
+
+bunni.send(message).to("default");
+```
+
+If there is no open connection, bunni will cache the message in memory and flush
+messages in order once a connection becomes available.
+
+NOTE: There is currently no limit on this cache.
+
 ### `bunni.when(eventName: string).do(handler: (message: Message) => void)`
 
 ### Lifecycle Events
@@ -99,17 +129,16 @@ successfully opened a communications channel through which to do work.
 
 #### `bunni.onFailed: (error: Error) => void`
 
-Emitted when bunni encounters an error during connection, channel, or topography
-assertion.
+Emitted when bunni
+
+- failed to establish a connection to a broker
+- failed to open a channel to the broker
+- failed to assert topography
 
 NOTE: When bunni enounters a failure, it will close the connection if one is
 open. Since bunni doesn't have assurances that all systems are green, it errs on
 the side of caution and shuts everything down, leaving the decision of what to
 do next up to you.
-
-- failed to establish a connection to a broker
-- failed to open a channel to the broker
-- failed to assert topography
 
 #### `bunni.onClosing: () => void`
 
